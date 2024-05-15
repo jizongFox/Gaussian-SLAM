@@ -129,6 +129,8 @@ class Tracker(object):
         elif self.odometry_type == "odometer":
             odometer_rel = self.odometer.estimate_rel_pose(image, depth)
             init_c2w = prev_c2ws[-1] @ odometer_rel
+        else:
+            raise ValueError("Invalid odometry type!, choose from ['gt', 'const_speed', 'odometer']")
 
         last_c2w = prev_c2ws[-1]
         last_w2c = np.linalg.inv(last_c2w)

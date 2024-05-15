@@ -10,3 +10,5 @@ debug
 wandb
 data
 *.txt
+venv
+.idea
