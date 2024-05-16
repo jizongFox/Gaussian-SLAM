@@ -1,13 +1,18 @@
 """ This module includes the Odometer class, which is allows for fast pose estimation from RGBD neighbor frames  """
 import numpy as np
 import open3d as o3d
-import open3d.core as o3c
+import open3d.core as o3c  # noqa
+import typing as t
 
 
 class VisualOdometer(object):
-
-    def __init__(self, intrinsics: np.ndarray, method_name="hybrid", device="cuda"):
-        """ Initializes the visual odometry system with specified intrinsics, method, and device.
+    def __init__(
+        self,
+        intrinsics: np.ndarray,
+        method_name="hybrid",
+        device: t.Literal["cuda", "cpu"] = "cuda",
+    ):
+        """Initializes the visual odometry system with specified intrinsics, method, and device.
         Args:
             intrinsics: Camera intrinsic parameters.
             method_name: The name of the odometry computation method to use ('hybrid' or 'point_to_plane').
@@ -21,14 +26,15 @@ class VisualOdometer(object):
         self.criteria_list = [
             o3d.t.pipelines.odometry.OdometryConvergenceCriteria(500),
             o3d.t.pipelines.odometry.OdometryConvergenceCriteria(500),
-            o3d.t.pipelines.odometry.OdometryConvergenceCriteria(500)]
+            o3d.t.pipelines.odometry.OdometryConvergenceCriteria(500),
+        ]
         self.setup_method(method_name)
         self.max_depth = 10.0
         self.depth_scale = 1.0
         self.last_rgbd = None
 
     def setup_method(self, method_name: str) -> None:
-        """ Sets up the odometry computation method based on the provided method name.
+        """Sets up the odometry computation method based on the provided method name.
         Args:
             method_name: The name of the odometry method to use ('hybrid' or 'point_to_plane').
         """
@@ -40,18 +46,26 @@ class VisualOdometer(object):
             raise ValueError("Odometry method does not exist!")
 
     def update_last_rgbd(self, image: np.ndarray, depth: np.ndarray) -> None:
-        """ Updates the last RGB-D frame stored in the system with a new RGB-D frame constructed from provided image and depth.
+        """Updates the last RGB-D frame stored in the system with a new RGB-D frame constructed from
+        provided image and depth.
         Args:
             image: The new RGB image as a numpy ndarray.
             depth: The new depth image as a numpy ndarray.
         """
         self.last_rgbd = o3d.t.geometry.RGBDImage(
-            o3d.t.geometry.Image(np.ascontiguousarray(
-                image).astype(np.float32)).to(self.device),
-            o3d.t.geometry.Image(np.ascontiguousarray(depth).astype(np.float32)).to(self.device))
+            o3d.t.geometry.Image(np.ascontiguousarray(image).astype(np.float32)).to(
+                self.device
+            ),
+            o3d.t.geometry.Image(np.ascontiguousarray(depth).astype(np.float32)).to(
+                self.device
+            ),
+        )
 
-    def estimate_rel_pose(self, image: np.ndarray, depth: np.ndarray, init_transform=np.eye(4)):
-        """ Estimates the relative pose of the current frame with respect to the last frame using RGB-D odometry.
+    def estimate_rel_pose(
+        self, image: np.ndarray, depth: np.ndarray, init_transform=np.eye(4)
+    ):
+        """Estimates the relative pose of the current frame with respect to the last frame using
+        RGB-D odometry.
         Args:
             image: The current RGB image as a numpy ndarray.
             depth: The current depth image as a numpy ndarray.
@@ -60,11 +74,23 @@ class VisualOdometer(object):
             The relative transformation matrix as a numpy ndarray.
         """
         rgbd = o3d.t.geometry.RGBDImage(
-            o3d.t.geometry.Image(np.ascontiguousarray(image).astype(np.float32)).to(self.device),
-            o3d.t.geometry.Image(np.ascontiguousarray(depth).astype(np.float32)).to(self.device))
+            o3d.t.geometry.Image(np.ascontiguousarray(image).astype(np.float32)).to(
+                self.device
+            ),
+            o3d.t.geometry.Image(np.ascontiguousarray(depth).astype(np.float32)).to(
+                self.device
+            ),
+        )
         rel_transform = o3d.t.pipelines.odometry.rgbd_odometry_multi_scale(
-            self.last_rgbd, rgbd, self.intrinsics, o3c.Tensor(init_transform),
-            self.depth_scale, self.max_depth, self.criteria_list, self.method)
+            self.last_rgbd,
+            rgbd,
+            self.intrinsics,
+            o3c.Tensor(init_transform),
+            self.depth_scale,
+            self.max_depth,
+            self.criteria_list,
+            self.method,
+        )
         self.last_rgbd = rgbd.clone()
 
         # Adjust for the coordinate system difference

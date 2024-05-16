@@ -1,10 +1,9 @@
 """ This module includes the Mapper class, which is responsible scene mapping: Paragraph 3.2  """
-import time
-from argparse import ArgumentParser
-
 import numpy as np
+import time
 import torch
 import torchvision
+from argparse import ArgumentParser
 
 from src.entities.arguments import OptimizationParams
 from src.entities.datasets import TUM_RGBD, BaseDataset, ScanNet
@@ -56,7 +55,6 @@ class Mapper(object):
         Returns:
             np.ndarray: A binary mask of shpae (H, W) indicates regions suitable for seeding new 3D Gaussian models
         """
-        seeding_mask = None
         if new_submap:
             color_for_mask = (torch2np(keyframe["color"].permute(1, 2, 0)) * 255).astype(np.uint8)
             seeding_mask = geometric_edge_mask(color_for_mask, RGB=True)
